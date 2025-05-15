@@ -8,7 +8,7 @@
         body {
             margin: 0;
             padding-top: 20px;
-            background: gainsboro;
+            background: rgb(187, 217, 188);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -46,7 +46,7 @@
         .collection {
             width: 200px;
             min-height: 300px;
-            background: rgb(214, 209, 178);
+            background: rgb(255, 255, 255);
             display: flex;
             flex-wrap: wrap;
             align-items: center;
@@ -64,7 +64,7 @@
             /*margin: 20px;*/ 
             flex-shrink: 0;
         }
-                .essay {
+                .qoute {
             max-width: 900px;
             padding: 30px 20px;
             background: #f9f6f1;
@@ -77,10 +77,39 @@
             text-align: left;
         }
 
+        .qoute h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #444;
+        }
+            .essay {
+        max-width: 1200px;
+        padding: 30px 20px;
+        background: #f9f6f1;
+        margin: 40px 0 60px 40px; /* top: 40px, right: 0, bottom: 60px, left: 40px */
+        border-top: 3px solid #ccc;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        font-size: 1.2rem;
+        line-height: 1.6;
+        color: #333;
+        text-align: left;
+        float: right;
+    }
+
         .essay h2 {
             font-size: 1.8rem;
             margin-bottom: 15px;
             color: #444;
+        }
+        .leftIMG {
+            float: left;
+            width: 30.33%;
+            padding: 10px;
+        }
+        .rightIMG {
+            float: right;
+            width: 30.33%;
+            padding: 10px;
         }
 
     </style>
@@ -93,15 +122,39 @@
         <canvas id="gameCanvas"></canvas>
         <div class="collection" id="collectionArea"></div>
     </div>
-
-    <div class="essay">
+<p>debug this code, click to drop hand</p>
+    <div class="qoute">
         <h2>Grace Hopper and Computing as Women's Work</h2>
-        <p>
+        <p> 
             "It's just like planning a dinner. You have to plan ahead and schedule everything so it's ready when you need it. Programming requires patience and the ability to handle detail. Women are 'naturals' at computer programming." - Dr. Grace Hopper in Cosmopolitan (1967)
 
         </p>
+        <img src="computerGirls.png" class="leftIMG" alt="Computer Girls Cosmopolitan">
+        <img src="computerGirls2.png" class="leftIMG" alt="Computer Girls Cosmopolitan">
+        <img src="computerGirls3.png" class="rightIMG" alt="Computer Girls Cosmopolitan">
+        <a href="https://archive.org/details/the-computer-girls-cosmopolitan-magazine-april-1967/The%20Computer%20Girls%20-%20Cosmopolitan%20magazine%20%28April%201967%29%20%5Bocr%5D/mode/2up">Read on our SF local Internet Archive</a>
+
+
+
+    </div>
+    
+    <div class="essay">
+        <img src="GH.jpg" class="leftIMG" alt="Grace Hopper (awesome)">
+
+        <p> 
+            &emsp; &emsp; &emsp;Grace Hopper was born in New York, 1909, earned a mathematics and physics degree at Vassar College, and a master's and Ph.D. in mathematics from Yale. She was teaching mathematics at Vassar when the bombing of Pearl Harbor occurred, and joined the U.S Naval Reserve in December of 1943. With the Navy, she worked on some of the first computers, the Mark I, Mark II, and Mark III, but would eventually leave the armed forces because she was rejected for a regular commission due to her age. She would later go to the private sector and revolutionize the world of compilers, being the technology that would turn mathematical code into machine-readable code. Most notably, she worked with a team to create Flow-matic and later COBOL compilers that would standardize the English-like commands we see in modern programming languages. While these languages are no longer used in computer science today, we still see the lasting effect of her work; the most interesting of these effects is the term “computer bug.”
+        </p>
     </div>
 
+    <div class="essay">
+        <img src="firstmoth.jpeg" class="rightIMG" alt="the first ever computer bug">
+
+        <p> 
+            &emsp; &emsp; &emsp; 	In 1945, Hopper was working on a broken Mark II computer, which, for context, this computer took up 4,000 square feet of floor space, four times larger than the average San Francisco apartment. After taking apart the computer code, she found a moth stuck in the code, which would have been handwritten on the page. This was the first instance of a computer “bug” and code “debugging”, which is a term still used in the field today! Hopper was later awarded the 1969 Data Processing Management Association Man of the Year; ironic. 
+                </p>
+                <img src="markII.jpeg" class="rightIMG" alt="MarkII computer">
+
+    </div>
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -148,7 +201,7 @@
 
         function updateClaw() {
             if (dropping) {
-                clawY += 5;
+                clawY += 10;
                 if (
                     clawX + clawImage.width / 8 < prize.x + prize.width &&
                     clawX + clawImage.width / 8 > prize.x &&
