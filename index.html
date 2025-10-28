@@ -21,14 +21,7 @@
     <div id="root"></div>
 
     <script>
-  // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
-
-        // Your web app's Firebase configuration
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDvw4C727AZqBB0XOP6HgELMABh9V4XXRg",
             authDomain: "aiartgame-3917.firebaseapp.com",
@@ -40,8 +33,8 @@
         };
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
     </script>
 
     <script type="text/babel">
@@ -73,6 +66,82 @@
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
         );
+
+        const Leaderboard = ({ onClose }) => {
+            const [scores, setScores] = useState([]);
+            const [loadingScores, setLoadingScores] = useState(true);
+
+            useEffect(() => {
+                const loadScores = async () => {
+                    try {
+                        const snapshot = await db.collection('scores').orderBy('score', 'desc').get();
+                        const scoresList = [];
+                        snapshot.forEach(doc => {
+                            scoresList.push({ id: doc.id, ...doc.data() });
+                        });
+                        setScores(scoresList);
+                    } catch (error) {
+                        console.error('Error loading scores:', error);
+                    }
+                    setLoadingScores(false);
+                };
+                loadScores();
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-black p-4">
+                    <div className="max-w-4xl mx-auto pt-8">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-3xl font-bold text-white">Leaderboard</h2>
+                                <button
+                                    onClick={onClose}
+                                    className="bg-white/20 text-white px-6 py-2 rounded-full hover:bg-white/30 transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                            <div className="overflow-auto max-h-96">
+                                {loadingScores ? (
+                                    <p className="text-white/70 text-center py-8">Loading scores...</p>
+                                ) : (
+                                    <table className="w-full text-white">
+                                        <thead className="bg-white/5 sticky top-0">
+                                            <tr>
+                                                <th className="p-3 text-left">Rank</th>
+                                                <th className="p-3 text-left">Name</th>
+                                                <th className="p-3 text-left">Score</th>
+                                                <th className="p-3 text-left">Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {scores.map((item, index) => (
+                                                <tr key={item.id} className="border-b border-white/10">
+                                                    <td className="p-3">
+                                                        {index === 0 && '🥇 '}
+                                                        {index === 1 && '🥈 '}
+                                                        {index === 2 && '🥉 '}
+                                                        {index + 1}
+                                                    </td>
+                                                    <td className="p-3">{item.name}</td>
+                                                    <td className="p-3 font-bold text-yellow-300">{item.score}%</td>
+                                                    <td className="p-3 text-sm text-white/70">
+                                                        {new Date(item.date).toLocaleString()}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                                {!loadingScores && scores.length === 0 && (
+                                    <p className="text-white/70 text-center py-8">No scores yet!</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
         const ArtGame = () => {
             const [gameState, setGameState] = useState('start');
@@ -307,81 +376,8 @@
                 setGameState('playing');
             };
 
-            // Score viewing component
             if (showScores) {
-                const [scores, setScores] = useState([]);
-                const [loadingScores, setLoadingScores] = useState(true);
-
-                useEffect(() => {
-                    const loadScores = async () => {
-                        try {
-                            const snapshot = await db.collection('scores').orderBy('score', 'desc').get();
-                            const scoresList = [];
-                            snapshot.forEach(doc => {
-                                scoresList.push({ id: doc.id, ...doc.data() });
-                            });
-                            setScores(scoresList);
-                        } catch (error) {
-                            console.error('Error loading scores:', error);
-                        }
-                        setLoadingScores(false);
-                    };
-                    loadScores();
-                }, []);
-
-                return (
-                    <div className="min-h-screen bg-black p-4">
-                        <div className="max-w-4xl mx-auto pt-8">
-                            <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-3xl font-bold text-white">Leaderboard</h2>
-                                    <button
-                                        onClick={() => setShowScores(false)}
-                                        className="bg-white/20 text-white px-6 py-2 rounded-full hover:bg-white/30 transition"
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                                <div className="overflow-auto max-h-96">
-                                    {loadingScores ? (
-                                        <p className="text-white/70 text-center py-8">Loading scores...</p>
-                                    ) : (
-                                        <table className="w-full text-white">
-                                            <thead className="bg-white/5 sticky top-0">
-                                                <tr>
-                                                    <th className="p-3 text-left">Rank</th>
-                                                    <th className="p-3 text-left">Name</th>
-                                                    <th className="p-3 text-left">Score</th>
-                                                    <th className="p-3 text-left">Date</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {scores.map((item, index) => (
-                                                    <tr key={item.id} className="border-b border-white/10">
-                                                        <td className="p-3">
-                                                            {index === 0 && '🥇 '}
-                                                            {index === 1 && '🥈 '}
-                                                            {index === 2 && '🥉 '}
-                                                            {index + 1}
-                                                        </td>
-                                                        <td className="p-3">{item.name}</td>
-                                                        <td className="p-3 font-bold text-yellow-300">{item.score}%</td>
-                                                        <td className="p-3 text-sm text-white/70">
-                                                            {new Date(item.date).toLocaleString()}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
-                                    {!loadingScores && scores.length === 0 && (
-                                        <p className="text-white/70 text-center py-8">No scores yet!</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
+                return <Leaderboard onClose={() => setShowScores(false)} />;
             }
 
             if (gameState === 'start') {

@@ -21,27 +21,20 @@
     <div id="root"></div>
 
     <script>
-                    // Import the functions you need from the SDKs you need
-            import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-            import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-            // TODO: Add SDKs for Firebase products that you want to use
-            // https://firebase.google.com/docs/web/setup#available-libraries
+        // Your Firebase configuration (SAME as index.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDvw4C727AZqBB0XOP6HgELMABh9V4XXRg",
+            authDomain: "aiartgame-3917.firebaseapp.com",
+            projectId: "aiartgame-3917",
+            storageBucket: "aiartgame-3917.firebasestorage.app",
+            messagingSenderId: "441440463077",
+            appId: "1:441440463077:web:b5088fbd54e80e01b74c0c",
+            measurementId: "G-9FGB7PQDKV"
+        };
 
-            // Your web app's Firebase configuration
-            // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-            const firebaseConfig = {
-                apiKey: "AIzaSyDvw4C727AZqBB0XOP6HgELMABh9V4XXRg",
-                authDomain: "aiartgame-3917.firebaseapp.com",
-                projectId: "aiartgame-3917",
-                storageBucket: "aiartgame-3917.firebasestorage.app",
-                messagingSenderId: "441440463077",
-                appId: "1:441440463077:web:b5088fbd54e80e01b74c0c",
-                measurementId: "G-9FGB7PQDKV"
-            };
-
-            // Initialize Firebase
-            const app = initializeApp(firebaseConfig);
-            const analytics = getAnalytics(app);
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
     </script>
 
     <script type="text/babel">
