@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Art Game</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const Users = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+        );
+
+        const Shield = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+        );
+
+        const AdminPanel = () => {
+            const [authenticated, setAuthenticated] = useState(false);
+            const [password, setPassword] = useState('');
+            const [scores, setScores] = useState([]);
+            const [stats, setStats] = useState(null);
+
+            useEffect(() => {
+                if (authenticated) {
+                    loadData();
+                }
+            }, [authenticated]);
+
+            const loadData = () => {
+                const allScores = localStorage.getItem('art_game_scores');
+                const gameStats = localStorage.getItem('art_game_stats');
+                
+                if (allScores) {
+                    const scoresList = JSON.parse(allScores);
+                    setScores(scoresList.sort((a, b) => b.score - a.score));
+                }
+                
+                if (gameStats) {
+                    setStats(JSON.parse(gameStats));
+                }
+            };
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                // if you are reading this, looking for the password, IKNOWMYSERCUITYISBADPLEASEGETOUTOFTHECODE AHH
+                if (password === 'admin123') {
+                    setAuthenticated(true);
+                } else {
+                    alert('Incorrect password!');
+                }
+            };
+
+            const downloadScores = () => {
+                if (scores.length === 0) {
+                    alert('No scores to download yet!');
+                    return;
+                }
+                
+                let csv = 'Name,Score,Date\n';
+                scores.forEach(item => {
+                    const date = new Date(item.date).toLocaleString();
+                    csv += `"${item.name}",${item.score},"${date}"\n`;
+                });
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'art-game-scores.csv';
+                a.click();
+            };
+
+            const clearAllData = () => {
+                if (confirm('Are you sure you want to delete ALL scores and stats? This cannot be undone!')) {
+                    localStorage.removeItem('art_game_scores');
+                    localStorage.removeItem('art_game_stats');
+                    setScores([]);
+                    setStats(null);
+                    alert('All data has been cleared!');
+                }
+            };
+
+            const logout = () => {
+                setAuthenticated(false);
+                setPassword('');
+            };
+
+            if (!authenticated) {
+                return (
+                    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-12 max-w-md w-full border border-white/20 shadow-2xl">
+                            <div className="flex justify-center mb-6">
+                                <Shield className="w-20 h-20 text-yellow-300" />
+                            </div>
+                            <h1 className="text-4xl font-bold text-white mb-4 text-center">Admin Panel</h1>
+                            <p className="text-white/70 mb-8 text-center">Enter password to access admin features</p>
+                            <form onSubmit={handleLogin}>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Password"
+                                    className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/50 border border-white/20 focus:border-yellow-300 focus:outline-none text-lg mb-6"
+                                />
+                                <button
+                                    type="submit"
+                                    className="w-full bg-white text-black px-8 py-3 rounded-full text-lg font-semibold hover:scale-105 transition-transform shadow-lg"
+                                >
+                                    Login
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-black p-4">
+                    <div className="max-w-6xl mx-auto pt-8">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 mb-8">
+                            <div className="flex justify-between items-center mb-6">
+                                <h1 className="text-4xl font-bold text-white">Admin Dashboard</h1>
+                                <button
+                                    onClick={logout}
+                                    className="bg-white/20 text-white px-6 py-2 rounded-full hover:bg-white/30 transition"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+
+                            {stats && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                                        <p className="text-white/70 text-sm mb-1">Total Games Played</p>
+                                        <p className="text-4xl font-bold text-yellow-300">{stats.count}</p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                                        <p className="text-white/70 text-sm mb-1">Average Score</p>
+                                        <p className="text-4xl font-bold text-blue-300">{stats.average}%</p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                                        <p className="text-white/70 text-sm mb-1">Highest Score</p>
+                                        <p className="text-4xl font-bold text-green-300">
+                                            {scores.length > 0 ? scores[0].score + '%' : 'N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-4 mb-6">
+                                <button
+                                    onClick={downloadScores}
+                                    className="bg-green-500 text-white px-6 py-3 rounded-full hover:bg-green-600 transition font-semibold"
+                                >
+                                    📥 Download CSV
+                                </button>
+                                <button
+                                    onClick={clearAllData}
+                                    className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 transition font-semibold"
+                                >
+                                    🗑️ Clear All Data
+                                </button>
+                                <button
+                                    onClick={loadData}
+                                    className="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition font-semibold"
+                                >
+                                    🔄 Refresh Data
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
+                            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                                <Users className="w-7 h-7" />
+                                All Scores
+                            </h2>
+                            <div className="overflow-auto max-h-96">
+                                <table className="w-full text-white">
+                                    <thead className="bg-white/5 sticky top-0">
+                                        <tr>
+                                            <th className="p-3 text-left">Rank</th>
+                                            <th className="p-3 text-left">Name</th>
+                                            <th className="p-3 text-left">Score</th>
+                                            <th className="p-3 text-left">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {scores.map((item, index) => (
+                                            <tr key={index} className="border-b border-white/10 hover:bg-white/5">
+                                                <td className="p-3">
+                                                    {index === 0 && '🥇 '}
+                                                    {index === 1 && '🥈 '}
+                                                    {index === 2 && '🥉 '}
+                                                    {index + 1}
+                                                </td>
+                                                <td className="p-3 font-semibold">{item.name}</td>
+                                                <td className="p-3 font-bold text-yellow-300">{item.score}%</td>
+                                                <td className="p-3 text-sm text-white/70">
+                                                    {new Date(item.date).toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {scores.length === 0 && (
+                                    <p className="text-white/70 text-center py-8">No scores recorded yet!</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<AdminPanel />, document.getElementById('root'));
+    </script>
+</body>
+</html>
