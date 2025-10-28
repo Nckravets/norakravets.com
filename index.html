@@ -8,12 +8,41 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <style>
         body { margin: 0; padding: 0; }
     </style>
 </head>
 <body>
     <div id="root"></div>
+
+    <script>
+  // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyDvw4C727AZqBB0XOP6HgELMABh9V4XXRg",
+            authDomain: "aiartgame-3917.firebaseapp.com",
+            projectId: "aiartgame-3917",
+            storageBucket: "aiartgame-3917.firebasestorage.app",
+            messagingSenderId: "441440463077",
+            appId: "1:441440463077:web:b5088fbd54e80e01b74c0c",
+            measurementId: "G-9FGB7PQDKV"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+    </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -194,11 +223,21 @@
                 loadGlobalAverage();
             }, []);
 
-            const loadGlobalAverage = () => {
-                const saved = localStorage.getItem('art_game_stats');
-                if (saved) {
-                    const stats = JSON.parse(saved);
-                    setGlobalAverage(stats.average);
+            const loadGlobalAverage = async () => {
+                try {
+                    const snapshot = await db.collection('scores').get();
+                    if (!snapshot.empty) {
+                        let total = 0;
+                        let count = 0;
+                        snapshot.forEach(doc => {
+                            total += doc.data().score;
+                            count++;
+                        });
+                        const average = Math.round((total / count) * 100) / 100;
+                        setGlobalAverage(average);
+                    }
+                } catch (error) {
+                    console.error('Error loading average:', error);
                 }
             };
 
@@ -206,65 +245,19 @@
                 setShowScores(true);
             };
 
-            const downloadScores = () => {
-                const allScores = localStorage.getItem('art_game_scores');
-                if (!allScores) {
-                    alert('No scores to download yet!');
-                    return;
-                }
-                
-                const scoresList = JSON.parse(allScores);
-                let csv = 'Name,Score,Date\n';
-                scoresList.forEach(item => {
-                    const date = new Date(item.date).toLocaleString();
-                    csv += `"${item.name}",${item.score},"${date}"\n`;
-                });
-                
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'art-game-scores.csv';
-                a.click();
-            };
-
-            const clearAllData = () => {
-                if (confirm('Are you sure you want to delete ALL scores and stats? This cannot be undone!')) {
-                    localStorage.removeItem('art_game_scores');
-                    localStorage.removeItem('art_game_stats');
-                    setGlobalAverage(null);
-                    setShowScores(false);
-                    alert('All data has been cleared!');
-                }
-            };
-
-            const updateGlobalStats = (newScore) => {
+            const updateGlobalStats = async (newScore) => {
                 setLoading(true);
                 try {
-                    const saved = localStorage.getItem('art_game_stats');
-                    let stats = saved ? JSON.parse(saved) : { total: 0, count: 0, average: 0 };
-                    
-                    stats.total += newScore;
-                    stats.count += 1;
-                    stats.average = Math.round((stats.total / stats.count) * 100) / 100;
-                    
-                    localStorage.setItem('art_game_stats', JSON.stringify(stats));
-                    setGlobalAverage(stats.average);
-
-                    // Save individual score with name and timestamp
-                    const allScores = localStorage.getItem('art_game_scores');
-                    let scoresList = allScores ? JSON.parse(allScores) : [];
-                    
-                    scoresList.push({
+                    await db.collection('scores').add({
                         name: playerName,
                         score: newScore,
                         date: new Date().toISOString(),
-                        timestamp: Date.now()
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    
-                    localStorage.setItem('art_game_scores', JSON.stringify(scoresList));
+                    await loadGlobalAverage();
                 } catch (error) {
                     console.error('Failed to update stats:', error);
+                    alert('Error saving score. Please check your internet connection.');
                 }
                 setLoading(false);
             };
@@ -289,7 +282,6 @@
                     setSelectedAnswer(null);
                     setShowResult(false);
                 } else {
-                    // Don't add the score again - it was already added in handleAnswer
                     const finalScore = Math.round((score / artPairs.length) * 100);
                     updateGlobalStats(finalScore);
                     setGameState('end');
@@ -317,16 +309,32 @@
 
             // Score viewing component
             if (showScores) {
-                const allScores = localStorage.getItem('art_game_scores');
-                const scoresList = allScores ? JSON.parse(allScores) : [];
-                const sortedScores = scoresList.sort((a, b) => b.score - a.score);
+                const [scores, setScores] = useState([]);
+                const [loadingScores, setLoadingScores] = useState(true);
+
+                useEffect(() => {
+                    const loadScores = async () => {
+                        try {
+                            const snapshot = await db.collection('scores').orderBy('score', 'desc').get();
+                            const scoresList = [];
+                            snapshot.forEach(doc => {
+                                scoresList.push({ id: doc.id, ...doc.data() });
+                            });
+                            setScores(scoresList);
+                        } catch (error) {
+                            console.error('Error loading scores:', error);
+                        }
+                        setLoadingScores(false);
+                    };
+                    loadScores();
+                }, []);
 
                 return (
                     <div className="min-h-screen bg-black p-4">
                         <div className="max-w-4xl mx-auto pt-8">
                             <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-3xl font-bold text-white">All Scores</h2>
+                                    <h2 className="text-3xl font-bold text-white">Leaderboard</h2>
                                     <button
                                         onClick={() => setShowScores(false)}
                                         className="bg-white/20 text-white px-6 py-2 rounded-full hover:bg-white/30 transition"
@@ -334,38 +342,39 @@
                                         Close
                                     </button>
                                 </div>
-                                <div className="mb-4 flex gap-4">
-                                    <button
-                                        onClick={() => setShowScores(false)}
-                                        className="bg-white/20 text-white px-6 py-2 rounded-full hover:bg-white/30 transition"
-                                    >
-                                        Back to Game
-                                    </button>
-                                </div>
                                 <div className="overflow-auto max-h-96">
-                                    <table className="w-full text-white">
-                                        <thead className="bg-white/5 sticky top-0">
-                                            <tr>
-                                                <th className="p-3 text-left">Rank</th>
-                                                <th className="p-3 text-left">Name</th>
-                                                <th className="p-3 text-left">Score</th>
-                                                <th className="p-3 text-left">Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {sortedScores.map((item, index) => (
-                                                <tr key={index} className="border-b border-white/10">
-                                                    <td className="p-3">{index + 1}</td>
-                                                    <td className="p-3">{item.name}</td>
-                                                    <td className="p-3 font-bold text-yellow-300">{item.score}%</td>
-                                                    <td className="p-3 text-sm text-white/70">
-                                                        {new Date(item.date).toLocaleString()}
-                                                    </td>
+                                    {loadingScores ? (
+                                        <p className="text-white/70 text-center py-8">Loading scores...</p>
+                                    ) : (
+                                        <table className="w-full text-white">
+                                            <thead className="bg-white/5 sticky top-0">
+                                                <tr>
+                                                    <th className="p-3 text-left">Rank</th>
+                                                    <th className="p-3 text-left">Name</th>
+                                                    <th className="p-3 text-left">Score</th>
+                                                    <th className="p-3 text-left">Date</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    {scoresList.length === 0 && (
+                                            </thead>
+                                            <tbody>
+                                                {scores.map((item, index) => (
+                                                    <tr key={item.id} className="border-b border-white/10">
+                                                        <td className="p-3">
+                                                            {index === 0 && '🥇 '}
+                                                            {index === 1 && '🥈 '}
+                                                            {index === 2 && '🥉 '}
+                                                            {index + 1}
+                                                        </td>
+                                                        <td className="p-3">{item.name}</td>
+                                                        <td className="p-3 font-bold text-yellow-300">{item.score}%</td>
+                                                        <td className="p-3 text-sm text-white/70">
+                                                            {new Date(item.date).toLocaleString()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                    {!loadingScores && scores.length === 0 && (
                                         <p className="text-white/70 text-center py-8">No scores yet!</p>
                                     )}
                                 </div>
@@ -453,14 +462,19 @@
                                         <p className="text-3xl font-bold text-blue-300">{globalAverage}%</p>
                                     </div>
                                     <p className="text-white/70">Average Score</p>
-              
                                 </div>
                             )}
                             <button
-                                onClick= {viewScores} ////////// deaky 
-                                className="bg-white text-black px-12 py-4 rounded-full text-xl font-semibold hover:scale-105 transition-transform shadow-lg"
+                                onClick={viewScores}
+                                className="bg-white text-black px-12 py-4 rounded-full text-xl font-semibold hover:scale-105 transition-transform shadow-lg mb-4"
                             >
-                                To Leaderboard
+                                View Leaderboard
+                            </button>
+                            <button
+                                onClick={restartGame}
+                                className="bg-white/20 text-white px-12 py-4 rounded-full text-xl font-semibold hover:scale-105 transition-transform"
+                            >
+                                Play Again
                             </button>
                         </div>
                     </div>

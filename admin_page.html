@@ -8,12 +8,41 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <style>
         body { margin: 0; padding: 0; }
     </style>
 </head>
 <body>
     <div id="root"></div>
+
+    <script>
+                    // Import the functions you need from the SDKs you need
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+            import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
+            // TODO: Add SDKs for Firebase products that you want to use
+            // https://firebase.google.com/docs/web/setup#available-libraries
+
+            // Your web app's Firebase configuration
+            // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+            const firebaseConfig = {
+                apiKey: "AIzaSyDvw4C727AZqBB0XOP6HgELMABh9V4XXRg",
+                authDomain: "aiartgame-3917.firebaseapp.com",
+                projectId: "aiartgame-3917",
+                storageBucket: "aiartgame-3917.firebasestorage.app",
+                messagingSenderId: "441440463077",
+                appId: "1:441440463077:web:b5088fbd54e80e01b74c0c",
+                measurementId: "G-9FGB7PQDKV"
+            };
+
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+    </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -42,23 +71,35 @@
                 }
             }, [authenticated]);
 
-            const loadData = () => {
-                const allScores = localStorage.getItem('art_game_scores');
-                const gameStats = localStorage.getItem('art_game_stats');
-                
-                if (allScores) {
-                    const scoresList = JSON.parse(allScores);
-                    setScores(scoresList.sort((a, b) => b.score - a.score));
-                }
-                
-                if (gameStats) {
-                    setStats(JSON.parse(gameStats));
+            const loadData = async () => {
+                try {
+                    const snapshot = await db.collection('scores').orderBy('score', 'desc').get();
+                    const scoresList = [];
+                    let total = 0;
+                    
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        scoresList.push({ id: doc.id, ...data });
+                        total += data.score;
+                    });
+                    
+                    setScores(scoresList);
+                    
+                    if (scoresList.length > 0) {
+                        setStats({
+                            count: scoresList.length,
+                            total: total,
+                            average: Math.round((total / scoresList.length) * 100) / 100
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
                 }
             };
 
             const handleLogin = (e) => {
                 e.preventDefault();
-                // if you are reading this, looking for the password, IKNOWMYSERCUITYISBADPLEASEGETOUTOFTHECODE AHH
+                // Change 'admin123' to your desired password
                 if (password === 'admin123') {
                     setAuthenticated(true);
                 } else {
@@ -86,13 +127,37 @@
                 a.click();
             };
 
-            const clearAllData = () => {
-                if (confirm('Are you sure you want to delete ALL scores and stats? This cannot be undone!')) {
-                    localStorage.removeItem('art_game_scores');
-                    localStorage.removeItem('art_game_stats');
-                    setScores([]);
-                    setStats(null);
-                    alert('All data has been cleared!');
+            const clearAllData = async () => {
+                if (confirm('Are you sure you want to delete ALL scores? This cannot be undone!')) {
+                    try {
+                        const batch = db.batch();
+                        const snapshot = await db.collection('scores').get();
+                        
+                        snapshot.docs.forEach(doc => {
+                            batch.delete(doc.ref);
+                        });
+                        
+                        await batch.commit();
+                        setScores([]);
+                        setStats(null);
+                        alert('All data has been cleared!');
+                    } catch (error) {
+                        console.error('Error clearing data:', error);
+                        alert('Error clearing data. Please try again.');
+                    }
+                }
+            };
+
+            const deleteScore = async (docId, scoreName) => {
+                if (confirm(`Delete score for ${scoreName}?`)) {
+                    try {
+                        await db.collection('scores').doc(docId).delete();
+                        alert('Score deleted successfully!');
+                        loadData();
+                    } catch (error) {
+                        console.error('Error deleting score:', error);
+                        alert('Error deleting score. Please try again.');
+                    }
                 }
             };
 
@@ -198,11 +263,12 @@
                                             <th className="p-3 text-left">Name</th>
                                             <th className="p-3 text-left">Score</th>
                                             <th className="p-3 text-left">Date</th>
+                                            <th className="p-3 text-left">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {scores.map((item, index) => (
-                                            <tr key={index} className="border-b border-white/10 hover:bg-white/5">
+                                            <tr key={item.id} className="border-b border-white/10 hover:bg-white/5">
                                                 <td className="p-3">
                                                     {index === 0 && '🥇 '}
                                                     {index === 1 && '🥈 '}
@@ -213,6 +279,14 @@
                                                 <td className="p-3 font-bold text-yellow-300">{item.score}%</td>
                                                 <td className="p-3 text-sm text-white/70">
                                                     {new Date(item.date).toLocaleString()}
+                                                </td>
+                                                <td className="p-3">
+                                                    <button
+                                                        onClick={() => deleteScore(item.id, item.name)}
+                                                        className="bg-red-500/80 text-white px-3 py-1 rounded-full hover:bg-red-600 transition text-sm"
+                                                    >
+                                                        Delete
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
