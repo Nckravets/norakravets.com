@@ -154,6 +154,7 @@
             const [playerName, setPlayerName] = useState('');
             const [nameSubmitted, setNameSubmitted] = useState(false);
             const [showScores, setShowScores] = useState(false);
+            const [imagesLoaded, setImagesLoaded] = useState(false);
 
             const artPairs = [
                 {
@@ -290,7 +291,31 @@
 
             useEffect(() => {
                 loadGlobalAverage();
+                // Preload all images
+                preloadImages();
             }, []);
+
+            const preloadImages = () => {
+                const imageUrls = artPairs.flatMap(pair => [pair.left.url, pair.right.url]);
+                let loadedCount = 0;
+                
+                imageUrls.forEach(url => {
+                    const img = new Image();
+                    img.onload = () => {
+                        loadedCount++;
+                        if (loadedCount === imageUrls.length) {
+                            setImagesLoaded(true);
+                        }
+                    };
+                    img.onerror = () => {
+                        loadedCount++;
+                        if (loadedCount === imageUrls.length) {
+                            setImagesLoaded(true);
+                        }
+                    };
+                    img.src = url;
+                });
+            };
 
             const loadGlobalAverage = async () => {
                 try {
@@ -521,11 +546,17 @@
                                             : 'border-white/20 hover:border-yellow-400 hover:scale-105 cursor-pointer'
                                     }`}
                                 >
-                                    <div className="aspect-square rounded-2xl overflow-hidden mb-4 bg-white/5">
+                                    <div className="aspect-square rounded-2xl overflow-hidden mb-4 bg-white/5 relative">
+                                        {!imagesLoaded && (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <div className="animate-pulse text-white/50">Loading...</div>
+                                            </div>
+                                        )}
                                         <img
                                             src={pair[side].url}
                                             alt="Artwork"
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-contain"
+                                            style={{ opacity: imagesLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
                                         />
                                     </div>
                                     {showResult && (
