@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI vs Real Art Game</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDvw4C727AZqBB0XOP6HgELMABh9V4XXRg",
+            authDomain: "aiartgame-3917.firebaseapp.com",
+            projectId: "aiartgame-3917",
+            storageBucket: "aiartgame-3917.firebasestorage.app",
+            messagingSenderId: "441440463077",
+            appId: "1:441440463077:web:b5088fbd54e80e01b74c0c",
+            measurementId: "G-9FGB7PQDKV"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Lucide icons as inline SVG components
+        const Sparkles = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+        );
+
+        const ImageIcon = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" strokeWidth={2}/>
+                <circle cx="9" cy="9" r="2" strokeWidth={2}/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" strokeWidth={2}/>
+            </svg>
+        );
+
+        const Trophy = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+        );
+
+        const Users = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+        );
+
+        const Leaderboard = ({ onClose }) => {
+            const [scores, setScores] = useState([]);
+            const [loadingScores, setLoadingScores] = useState(true);
+
+            useEffect(() => {
+                const loadScores = async () => {
+                    try {
+                        const snapshot = await db.collection('scores').orderBy('score', 'desc').get();
+                        const scoresList = [];
+                        snapshot.forEach(doc => {
+                            scoresList.push({ id: doc.id, ...doc.data() });
+                        });
+                        setScores(scoresList);
+                    } catch (error) {
+                        console.error('Error loading scores:', error);
+                    }
+                    setLoadingScores(false);
+                };
+                loadScores();
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-black p-4">
+                    <div className="max-w-4xl mx-auto pt-8">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-3xl font-bold text-white">Leaderboard</h2>
+                                <button
+                                    onClick={onClose}
+                                    className="bg-white/20 text-white px-6 py-2 rounded-full hover:bg-white/30 transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                            <div className="overflow-auto max-h-96">
+                                {loadingScores ? (
+                                    <p className="text-white/70 text-center py-8">Loading scores...</p>
+                                ) : (
+                                    <table className="w-full text-white">
+                                        <thead className="bg-white/5 sticky top-0">
+                                            <tr>
+                                                <th className="p-3 text-left">Rank</th>
+                                                <th className="p-3 text-left">Name</th>
+                                                <th className="p-3 text-left">Score</th>
+                                                <th className="p-3 text-left">Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {scores.map((item, index) => (
+                                                <tr key={item.id} className="border-b border-white/10">
+                                                    <td className="p-3">
+                                                        {index === 0 && '🥇 '}
+                                                        {index === 1 && '🥈 '}
+                                                        {index === 2 && '🥉 '}
+                                                        {index + 1}
+                                                    </td>
+                                                    <td className="p-3">{item.name}</td>
+                                                    <td className="p-3 font-bold text-yellow-300">{item.score}%</td>
+                                                    <td className="p-3 text-sm text-white/70">
+                                                        {new Date(item.date).toLocaleString()}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                                {!loadingScores && scores.length === 0 && (
+                                    <p className="text-white/70 text-center py-8">No scores yet!</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ArtGame = () => {
+            const [gameState, setGameState] = useState('start');
+            const [currentRound, setCurrentRound] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [showResult, setShowResult] = useState(false);
+            const [globalAverage, setGlobalAverage] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [playerName, setPlayerName] = useState('');
+            const [nameSubmitted, setNameSubmitted] = useState(false);
+            const [showScores, setShowScores] = useState(false);
+            const [imagesLoaded, setImagesLoaded] = useState(false);
+
+            const artPairs = [
+                {
+                    category: 'Abstract',
+                    left: { 
+                        url: 'art/ai1.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real1.jpg', 
+                        isReal: true, 
+                        description: 'Wassily Kandinsky – Untitled (First Abstract Watercolor), 1920.'
+                    }
+                },
+                {
+                    category: 'Impressionist',
+                    left: { 
+                        url: 'art/ai2.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real2.png', 
+                        isReal: true, 
+                        description: 'Armand Guillaumin, Moret-sur-Loing, Evening Effect, No. 2, ca. 1902' 
+                    }
+                },
+                {
+                    category: 'Surrealism',
+                    left: { 
+                        url: 'art/ai3.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real3.png', 
+                        isReal: true, 
+                        description: 'Giorgio de Chirico, The Song of Love, 1914'
+                    }
+                },
+                {
+                    category: 'Cubist',
+                    left: { 
+                        url: 'art/ai4.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real4.jpg', 
+                        isReal: true, 
+                        description: 'Pablo Picasso, Girl with a Mandolin (Fanny Tellier), Paris, 1910.'
+                    }
+                },
+                {
+                    category: 'Renaissance',
+                    left: { 
+                        url: 'art/ai5.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real5.jpg', 
+                        isReal: true, 
+                        description: 'Raphael, Baldassare Castiglione, Painted c. 1515 CE.'
+                    }
+                },
+                {
+                    category: 'Pop Art',
+                    left: { 
+                        url: 'art/real6.jpg', 
+                        isReal: true, 
+                        description: 'Roy Lichtenstein, Drowning Girl, 1962.'
+                    },
+                    right: { 
+                        url: 'art/ai6.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    }
+                },
+                {
+                    category: 'Graffiti',
+                    left: { 
+                        url: 'art/ai10.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real10.webp', 
+                        isReal: true, 
+                        description: 'Mural by Os Gemeos in Stockholm, Sweden.'
+                    }
+                },
+                {
+                    category: 'Minimalist',
+                    left: { 
+                        url: 'art/ai7.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real7.webp', 
+                        isReal: true, 
+                        description: 'Josef Albers, Homage to the Square: Dense-Soft, 1969.'
+                    }
+                },
+                {
+                    category: 'Digital - fantasy',
+                    left: { 
+                        url: 'art/real8.webp', 
+                        isReal: true, 
+                        description: 'Josh Dykgraaf, Windjammer.'
+                    },
+                    right: { 
+                        url: 'art/ai8.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    }
+                },
+                {
+                    category: 'Japanese woodwork',
+                    left: { 
+                        url: 'art/ai9.png', 
+                        isReal: false, 
+                        description: 'AI'
+                    },
+                    right: { 
+                        url: 'art/real9.jpg', 
+                        isReal: true, 
+                        description: 'Katsushika Hokusai, Red Fuji, c.1831.'
+                    }
+                }
+            ];
+
+            useEffect(() => {
+                loadGlobalAverage();
+                // Preload all images
+                preloadImages();
+            }, []);
+
+            const preloadImages = () => {
+                const imageUrls = artPairs.flatMap(pair => [pair.left.url, pair.right.url]);
+                let loadedCount = 0;
+                
+                imageUrls.forEach(url => {
+                    const img = new Image();
+                    img.onload = () => {
+                        loadedCount++;
+                        if (loadedCount === imageUrls.length) {
+                            setImagesLoaded(true);
+                        }
+                    };
+                    img.onerror = () => {
+                        loadedCount++;
+                        if (loadedCount === imageUrls.length) {
+                            setImagesLoaded(true);
+                        }
+                    };
+                    img.src = url;
+                });
+            };
+
+            const loadGlobalAverage = async () => {
+                try {
+                    const snapshot = await db.collection('scores').get();
+                    if (!snapshot.empty) {
+                        let total = 0;
+                        let count = 0;
+                        snapshot.forEach(doc => {
+                            total += doc.data().score;
+                            count++;
+                        });
+                        const average = Math.round((total / count) * 100) / 100;
+                        setGlobalAverage(average);
+                    }
+                } catch (error) {
+                    console.error('Error loading average:', error);
+                }
+            };
+
+            const viewScores = () => {
+                setShowScores(true);
+            };
+
+            const updateGlobalStats = async (newScore) => {
+                setLoading(true);
+                try {
+                    await db.collection('scores').add({
+                        name: playerName,
+                        score: newScore,
+                        date: new Date().toISOString(),
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    await loadGlobalAverage();
+                } catch (error) {
+                    console.error('Failed to update stats:', error);
+                    alert('Error saving score. Please check your internet connection.');
+                }
+                setLoading(false);
+            };
+
+            const handleAnswer = (side) => {
+                if (showResult) return;
+                
+                const pair = artPairs[currentRound];
+                const isCorrect = pair[side].isReal;
+                
+                setSelectedAnswer(side);
+                setShowResult(true);
+                
+                if (isCorrect) {
+                    setScore(score + 1);
+                }
+            };
+
+            const nextRound = () => {
+                if (currentRound < artPairs.length - 1) {
+                    setCurrentRound(currentRound + 1);
+                    setSelectedAnswer(null);
+                    setShowResult(false);
+                } else {
+                    const finalScore = Math.round((score / artPairs.length) * 100);
+                    updateGlobalStats(finalScore);
+                    setGameState('end');
+                }
+            };
+
+            const restartGame = () => {
+                setGameState('start');
+                setCurrentRound(0);
+                setScore(0);
+                setSelectedAnswer(null);
+                setShowResult(false);
+                setNameSubmitted(false);
+                setPlayerName('');
+            };
+
+            const startGame = () => {
+                if (playerName.trim() === '') {
+                    alert('Please enter your name to continue!');
+                    return;
+                }
+                setNameSubmitted(true);
+                setGameState('playing');
+            };
+
+            if (showScores) {
+                return <Leaderboard onClose={() => setShowScores(false)} />;
+            }
+
+            if (gameState === 'start') {
+                return (
+                    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-12 max-w-2xl text-center border border-white/20 shadow-2xl">
+                            <div className="flex justify-center mb-6">
+                                <Sparkles className="w-20 h-20 text-yellow-300" />
+                            </div>
+                            <h1 className="text-5xl font-bold text-white mb-4">AI vs Real Art</h1>
+                            <p className="text-xl text-white/80 mb-8">
+                                Can you tell the difference between AI-generated fake art and real art?
+                            </p>
+                            <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/10">
+                                <h2 className="text-2xl font-semibold text-white mb-3">How to Play</h2>
+                                <ul className="text-white/70 text-left space-y-2">
+                                    <li>• You will see two pieces of art side by side</li>
+                                    <li>• Click on the one you think is REAL</li>
+                                    <li>• Complete 10 rounds to get your final score</li>
+                                </ul>
+                            </div>
+                            <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/10">
+                                <label className="block text-white text-lg font-semibold mb-3">Enter Your Name:</label>
+                                <input
+                                    type="text"
+                                    value={playerName}
+                                    onChange={(e) => setPlayerName(e.target.value)}
+                                    placeholder="Your name"
+                                    className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/50 border border-white/20 focus:border-yellow-300 focus:outline-none text-lg"
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            startGame();
+                                        }
+                                    }}
+                                />
+                            </div>
+                            {globalAverage !== null && (
+                                <div className="flex items-center justify-center gap-2 text-white/70 mb-6">
+                                    <Users className="w-5 h-5" />
+                                    <span>Average Score: {globalAverage}%</span>
+                                </div>
+                            )}
+                            <button
+                                onClick={startGame}
+                                className="bg-white text-black px-12 py-4 rounded-full text-xl font-semibold hover:scale-105 transition-transform shadow-lg"
+                            >
+                                Start Game
+                            </button>
+                            <button
+                                onClick={viewScores}
+                                className="mt-4 bg-white/20 text-white px-8 py-3 rounded-full text-sm font-semibold hover:bg-white/30 transition"
+                            >
+                                View Leaderboard
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (gameState === 'end') {
+                const finalScore = Math.round((score / artPairs.length) * 100);
+                return (
+                    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-12 max-w-2xl text-center border border-white/20 shadow-2xl">
+                            <Trophy className="w-24 h-24 text-yellow-300 mx-auto mb-6" />
+                            <h1 className="text-5xl font-bold text-white mb-4">Game Complete!</h1>
+                            <div className="bg-white/5 rounded-2xl p-8 mb-6 border border-white/10">
+                                <p className="text-6xl font-bold text-yellow-300 mb-2">{finalScore}%</p>
+                                <p className="text-2xl text-white/80">Your Score</p>
+                                <p className="text-lg text-white/60 mt-2">
+                                    {score} out of {artPairs.length} correct
+                                </p>
+                            </div>
+                            {globalAverage !== null && (
+                                <div className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/10">
+                                    <div className="flex items-center justify-center gap-3 mb-2">
+                                        <Users className="w-6 h-6 text-blue-300" />
+                                        <p className="text-3xl font-bold text-blue-300">{globalAverage}%</p>
+                                    </div>
+                                    <p className="text-white/70">Average Score</p>
+                                </div>
+                            )}
+                            <button
+                                onClick={viewScores}
+                                className="bg-white text-black px-12 py-4 rounded-full text-xl font-semibold hover:scale-105 transition-transform shadow-lg mb-4"
+                            >
+                                View Leaderboard
+                            </button>
+                            <button
+                                onClick={restartGame}
+                                className="bg-white/20 text-white px-12 py-4 rounded-full text-xl font-semibold hover:scale-105 transition-transform"
+                            >
+                                Play Again
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const pair = artPairs[currentRound];
+
+            return (
+                <div className="min-h-screen bg-black p-4">
+                    <div className="max-w-6xl mx-auto pt-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <div className="bg-white/10 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/20">
+                                <p className="text-white text-lg">
+                                    Round <span className="font-bold">{currentRound + 1}</span> / {artPairs.length}
+                                </p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/20">
+                                <p className="text-white text-lg">
+                                    Score: <span className="font-bold">{score}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <h2 className="text-4xl font-bold text-white text-center mb-2">
+                            Which one is REAL?
+                        </h2>
+                        <p className="text-2xl text-yellow-300 text-center mb-2 font-semibold">
+                            {pair.category}
+                        </p>
+                        <p className="text-white/70 text-center mb-8 text-lg">
+                            Click on the artwork created by a human artist
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-8 mb-8">
+                            {['left', 'right'].map((side) => (
+                                <button
+                                    key={side}
+                                    onClick={() => handleAnswer(side)}
+                                    disabled={showResult}
+                                    className={`group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 border-2 transition-all ${
+                                        showResult
+                                            ? pair[side].isReal
+                                                ? 'border-green-400 bg-green-500/20'
+                                                : selectedAnswer === side
+                                                ? 'border-red-400 bg-red-500/20'
+                                                : 'border-white/20'
+                                            : 'border-white/20 hover:border-yellow-400 hover:scale-105 cursor-pointer'
+                                    }`}
+                                >
+                                    <div className="aspect-square rounded-2xl overflow-hidden mb-4 bg-white/5 relative">
+                                        {!imagesLoaded && (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <div className="animate-pulse text-white/50">Loading...</div>
+                                            </div>
+                                        )}
+                                        <img
+                                            src={pair[side].url}
+                                            alt="Artwork"
+                                            className="w-full h-full object-contain"
+                                            style={{ opacity: imagesLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+                                        />
+                                    </div>
+                                    {showResult && (
+                                        <div className="flex items-center justify-center gap-2">
+                                            {pair[side].isReal ? (
+                                                <>
+                                                    <ImageIcon className="w-5 h-5 text-green-400" />
+                                                    <span className="text-green-400 font-semibold">Real Art</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="w-5 h-5 text-purple-400" />
+                                                    <span className="text-purple-400 font-semibold">AI Generated</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+
+                        {showResult && (
+                            <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 mb-8 border border-white/20">
+                                <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                                    <ImageIcon className="w-7 h-7 text-green-400" />
+                                    About the Real Artwork
+                                </h3>
+                                <p className="text-white/90 text-lg leading-relaxed">
+                                    {pair.left.isReal ? pair.left.description : pair.right.description}
+                                </p>
+                            </div>
+                        )}
+
+                        {showResult && (
+                            <div className="text-center">
+                                <button
+                                    onClick={nextRound}
+                                    className="bg-white text-black px-12 py-4 rounded-full text-xl font-semibold hover:scale-105 transition-transform shadow-lg"
+                                >
+                                    {currentRound < artPairs.length - 1 ? 'Next Round' : 'See Results'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<ArtGame />, document.getElementById('root'));
+    </script>
+</body>
+</html>
